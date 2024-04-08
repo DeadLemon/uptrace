@@ -1,0 +1,131 @@
+version: "3"
+
+services:
+  clickhouse:
+    image: "clickhouse/clickhouse-server:23.7"
+    restart: "on-failure"
+    environment:
+      CLICKHOUSE_DB: "uptrace"
+      CLICKHOUSE_USER: "uptrace"
+      CLICKHOUSE_PASSWORD: "uptrace"
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', 'localhost:8123/ping']
+      interval: 1s
+      timeout: 1s
+      retries: 30
+    volumes:
+      - "./_volumes/var/lib/clickhouse:/var/lib/clickhouse"
+    ports:
+      - '8123:8123'
+      - '9000:9000'
+  postgres:
+    image: "postgres:15-alpine"
+    restart: "on-failure"
+    environment:
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+      POSTGRES_DB: "uptrace"
+      POSTGRES_USER: "uptrace"
+      POSTGRES_PASSWORD: "uptrace"
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U uptrace -d uptrace']
+      interval: 1s
+      timeout: 1s
+      retries: 30
+    volumes:
+      - "./_volumes/var/lib/postgresql/data/pgdata:/var/lib/postgresql/data/pgdata"
+    ports:
+      - "5432:5432"
+  uptrace:
+    image: 'uptrace/uptrace:1.7.0'
+    restart: "on-failure"
+    network_mode: "host"
+    volumes:
+      - "./_volumes/etc/uptrace/uptrace.yml:/etc/uptrace/uptrace.yml"
+    ports:
+      - "14317:14317"
+      - "14318:14318"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  otelcol:
+    image: "otel/opentelemetry-collector-contrib:0.88.0"
+    restart: "on-failure"
+    volumes:
+      - "./_volumes/etc/otelcol-contrib/config.yaml:/etc/otelcol-contrib/config.yaml"
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  mailpit:
+    image: axllent/mailpit
+    restart: always
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_MAX_MESSAGES: 5000
+      MP_DATA_FILE: "/var/lib/mailpit/mailpit.db"
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
+    volumes:
+      - "./_volumes/var/lib/mailpit/mailpit.db:/var/lib/mailpit/mailpit.db"
+  vector:
+    image: "timberio/vector:0.28.X-alpine"
+    volumes:
+      - "./_volumes/etc/vector/vector.toml:/etc/vector/vector.toml:ro"
+  grafana:
+    image: "grafana/grafana:9.5.3"
+    restart: "on-failure"
+    volumes:
+      - "./_volumes/etc/grafana/provisioning/datasources/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml"
+      - "./_volumes/etc/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards"
+      - "./_volumes/etc/grafana/grafana.ini:/etc/grafana/grafana.ini"
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  prometheus:
+    image: "prom/prometheus:v2.36.2"
+    restart: "always"
+    volumes:
+      - "./_volumes/etc/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml"
+      - "./_volumes/var/lib/prometheus:/var/lib/prometheus"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/var/lib/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  alertmanager:
+    image: "prom/alertmanager:v0.24.0"
+    restart: "on-failure"
+    volumes:
+      - "./_volumes/etc/alertmanager/config.yml:/etc/alertmanager/config.yml"
+      - "./_volumes/var/lib/alertmanager:/var/lib/alertmanager"
+    ports: ["9093:9093"]
+    command: ["--config.file=/etc/alertmanager/config.yml", "--storage.path=/var/lib/alertmanager"]
+  node_exporter:
+    image: "quay.io/prometheus/node-exporter:latest"
+    container_name: "node_exporter"
+    restart: "unless-stopped"
+    command: ["--path.rootfs=/host"]
+    network_mode: "host"
+    pid: "host"
+    volumes: ["/:/host:ro,rslave"]
+  redis:
+    image: "redis:alpine"
+    container_name: "redis"
+    ports:
+      - "6379:6379"
+  keycloak:
+    image: "quay.io/keycloak/keycloak:19.0.2"
+    container_name: "keycloak"
+    restart: "on-failure"
+    command: ["start-dev"]
+    network_mode: "host"
+    ports:
+      - "8080:8080"
+    environment:
+      KEYCLOAK_ADMIN: "admin"
+      KEYCLOAK_ADMIN_PASSWORD: "admin"

@@ -1,0 +1,47 @@
+apiVersion: 1
+
+datasources:
+  - name: Uptrace Tempo Project Uptrace
+    type: tempo
+    access: proxy
+    url: http://uptrace:14318/api/tempo
+    editable: true
+    jsonData:
+      httpHeaderName1: 'uptrace-dsn'
+    secureJsonData:
+      httpHeaderValue1: 'http://LwsvUGKesSMsV8ZDU0lUCS9gF1ebG49XvQbvGYAci1Aa@localhost:14317/1'
+
+  - name: Uptrace Prometheus Project Uptrace
+    type: prometheus
+    access: proxy
+    url: http://uptrace:14318/api/prometheus
+    editable: true
+    jsonData:
+      httpHeaderName1: 'uptrace-dsn'
+    secureJsonData:
+      httpHeaderValue1: 'http://LwsvUGKesSMsV8ZDU0lUCS9gF1ebG49XvQbvGYAci1Aa@localhost:14317/1'
+
+  - name: Uptrace Tempo Project Sandbox
+    type: tempo
+    access: proxy
+    url: http://uptrace:14318/api/tempo
+    editable: true
+    jsonData:
+      httpHeaderName1: 'uptrace-dsn'
+    secureJsonData:
+      httpHeaderValue1: 'http://XaweuoAphEdCeihgPXa9DpTUnzUuaNtUWgfyNJ95qxwW@localhost:14317/2'
+
+  - name: Uptrace Prometheus Project Sandbox
+    type: prometheus
+    access: proxy
+    url: http://uptrace:14318/api/prometheus
+    editable: true
+    jsonData:
+      httpHeaderName1: 'uptrace-dsn'
+    secureJsonData:
+      httpHeaderValue1: 'http://XaweuoAphEdCeihgPXa9DpTUnzUuaNtUWgfyNJ95qxwW@localhost:14317/2'
+
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
